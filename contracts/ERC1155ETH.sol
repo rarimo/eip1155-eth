@@ -13,6 +13,7 @@ contract ERC1155ETH is ERC1155 {
     struct UserData {
         uint256 nullifier;
         uint256 identityCreationTimestamp;
+        uint256 identityCounter;
     }
 
     struct TransitionData {
@@ -24,7 +25,9 @@ contract ERC1155ETH is ERC1155 {
     uint256 public constant PROOF_SIGNALS_COUNT = 24;
     uint256 public constant IDENTITY_LIMIT = type(uint32).max;
     uint256 public constant ZERO_DATE = 0x303030303030;
-    uint256 public constant SELECTOR = 0x9a21;
+    uint256 public constant SELECTOR = 0x5a21; // 0b101101000100001
+
+    uint256 public immutable initTimestamp = block.timestamp;
 
     uint256 public immutable magicTokenId;
 
@@ -112,13 +115,25 @@ contract ERC1155ETH is ERC1155 {
 
         uint256[] memory pubSignals_ = new uint256[](PROOF_SIGNALS_COUNT);
 
+        uint256 timestampUpperbound_;
+        uint256 identityCounterUpperbound_;
+
+        if (userData_.identityCreationTimestamp > initTimestamp) {
+            timestampUpperbound_ = type(uint32).max;
+            identityCounterUpperbound_ = 0;
+        } else {
+            timestampUpperbound_ = initTimestamp;
+            identityCounterUpperbound_ = userData_.identityCounter;
+        }
+
         pubSignals_[0] = userData_.nullifier; // output, nullifier
         pubSignals_[10] = magicTokenId; // input, eventId
         pubSignals_[11] = uint248(uint256(keccak256(abi.encode(receiver_)))); // input, eventData
         pubSignals_[12] = uint256(registrationRoot_); // input, idStateRoot
         pubSignals_[13] = SELECTOR; // input, selector
         pubSignals_[14] = currentDate_; // input, currentDate
-        pubSignals_[18] = identityCounterUpperBound; // input, identityCounterUpperbound
+        pubSignals_[16] = timestampUpperbound_; // input, timestampUpperbound
+        pubSignals_[18] = identityCounterUpperbound_; // input, identityCounterUpperbound
         pubSignals_[19] = ZERO_DATE; // input, birthDateLowerbound
         pubSignals_[20] = ZERO_DATE; // input, birthDateUpperbound
         pubSignals_[21] = ZERO_DATE; // input, expirationDateLowerbound
