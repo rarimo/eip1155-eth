@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ERC1155Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 
 import {VerifierHelper} from "@solarity/solidity-lib/libs/zkp/snarkjs/VerifierHelper.sol";
 
 import {IRegistrationSMTReplicator} from "./interfaces/IRegistrationSMTReplicator.sol";
 
-contract ERC1155ETH is ERC1155 {
+contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using VerifierHelper for address;
 
     struct UserData {
@@ -27,12 +30,12 @@ contract ERC1155ETH is ERC1155 {
     uint256 public constant ZERO_DATE = 0x303030303030;
     uint256 public constant SELECTOR = 0x5a21; // 0b101101000100001
 
-    uint256 public immutable initTimestamp = block.timestamp;
+    uint256 public initTimestamp = block.timestamp;
 
-    uint256 public immutable magicTokenId;
+    uint256 public magicTokenId;
 
-    address public immutable identityProofVerifier;
-    IRegistrationSMTReplicator public immutable state;
+    address public identityProofVerifier;
+    IRegistrationSMTReplicator public state;
 
     mapping(uint256 => bool) public nullifiers;
 
@@ -48,11 +51,14 @@ contract ERC1155ETH is ERC1155 {
     error InvalidProof();
     error UserAlreadyRegistered(address user);
 
-    constructor(
+    function __ERC1155ETH_init(
         uint256 magicTokenId_,
         address identityProofVerifier_,
         address state_
-    ) ERC1155("") {
+    ) public initializer {
+        __Ownable_init(_msgSender());
+        __ERC1155_init("");
+
         magicTokenId = magicTokenId_;
 
         identityProofVerifier = identityProofVerifier_;
@@ -111,8 +117,6 @@ contract ERC1155ETH is ERC1155 {
         require(state.isRootValid(registrationRoot_), InvalidRoot(registrationRoot_));
         require(!nullifiers[userData_.nullifier], NullifierUsed(userData_.nullifier));
 
-        uint256 identityCounterUpperBound = IDENTITY_LIMIT;
-
         uint256[] memory pubSignals_ = new uint256[](PROOF_SIGNALS_COUNT);
 
         uint256 timestampUpperbound_;
@@ -149,5 +153,12 @@ contract ERC1155ETH is ERC1155 {
 
     function isNullifierUsed(uint256 nullifier) public view returns (bool) {
         return nullifiers[nullifier];
+    }
+
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function implementation() external view returns (address) {
+        return ERC1967Utils.getImplementation();
     }
 }
