@@ -42,6 +42,10 @@ const config: HardhatUserConfig = {
       accounts: privateKey(),
       gasMultiplier: 1.2,
     },
+    "q-testnet": {
+      url: "https://rpc.qtestnet.org/",
+      accounts: privateKey(),
+    },
   },
   solidity: {
     version: "0.8.28",
@@ -55,9 +59,20 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
+      "q-testnet": "abc",
       sepolia: `${process.env.ETHERSCAN_KEY}`,
       mainnet: `${process.env.ETHERSCAN_KEY}`,
     },
+    customChains: [
+      {
+        network: "q-testnet",
+        chainId: 35443,
+        urls: {
+          apiURL: "https://explorer.qtestnet.org/api",
+          browserURL: "https://explorer.qtestnet.org",
+        },
+      },
+    ],
   },
   migrate: {
     pathToMigrations: "./deploy/",
