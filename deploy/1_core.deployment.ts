@@ -1,5 +1,3 @@
-import { ethers } from "ethers";
-
 import { Deployer, Reporter } from "@solarity/hardhat-migrate";
 
 import { ERC1155ETH__factory, ERC1967Proxy__factory, QueryIdentityProofVerifier__factory } from "@ethers-v6";
