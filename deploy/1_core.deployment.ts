@@ -4,7 +4,7 @@ import { Deployer, Reporter } from "@solarity/hardhat-migrate";
 
 import { ERC1155ETH__factory, ERC1967Proxy__factory, QueryIdentityProofVerifier__factory } from "@ethers-v6";
 
-const MAGIC_TOKEN_ID = BigInt(ethers.id("MAGIC"));
+const MAGIC_TOKEN_ID = 111186066134341633902189494613533900917417361106374681011849132651019822199n;
 const STATE_CONTRACT_ADDRESS = "0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2";
 
 export = async (deployer: Deployer) => {

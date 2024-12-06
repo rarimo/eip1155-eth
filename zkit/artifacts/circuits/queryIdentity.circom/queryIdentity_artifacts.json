@@ -204,11 +204,11 @@
     },
     "groth16.zkey": {
       "fileSourcePath": "/Volumes/Somebody/Desktop/Rarimo/eip1155-eth/zkit/artifacts/circuits/queryIdentity.circom/queryIdentity.groth16.zkey",
-      "fileHash": "84c075f15321e318becc85cb6853446c5d29b959"
+      "fileHash": "aa0247883597d0077364a3458872e484fe0acc5e"
     },
     "groth16.vkey": {
       "fileSourcePath": "/Volumes/Somebody/Desktop/Rarimo/eip1155-eth/zkit/artifacts/circuits/queryIdentity.circom/queryIdentity.groth16.vkey.json",
-      "fileHash": "38284765480379ad134bf4582a9184e4f4c48095"
+      "fileHash": "a79d282024b78ddf83cdcb87b247bf12278517d5"
     }
   }
 }
