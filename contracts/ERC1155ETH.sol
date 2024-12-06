@@ -28,7 +28,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant PROOF_SIGNALS_COUNT = 24;
     uint256 public constant IDENTITY_LIMIT = type(uint32).max;
     uint256 public constant ZERO_DATE = 0x303030303030;
-    uint256 public constant SELECTOR = 0x5a21; // 0b101101000100001
+    uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
     uint256 public initTimestamp = block.timestamp;
 
@@ -131,17 +131,17 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         }
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier
-        pubSignals_[10] = magicTokenId; // input, eventId
-        pubSignals_[11] = uint248(uint256(keccak256(abi.encode(receiver_)))); // input, eventData
-        pubSignals_[12] = uint256(registrationRoot_); // input, idStateRoot
-        pubSignals_[13] = SELECTOR; // input, selector
-        pubSignals_[14] = currentDate_; // input, currentDate
-        pubSignals_[16] = timestampUpperbound_; // input, timestampUpperbound
-        pubSignals_[18] = identityCounterUpperbound_; // input, identityCounterUpperbound
-        pubSignals_[19] = ZERO_DATE; // input, birthDateLowerbound
-        pubSignals_[20] = ZERO_DATE; // input, birthDateUpperbound
-        pubSignals_[21] = ZERO_DATE; // input, expirationDateLowerbound
-        pubSignals_[22] = ZERO_DATE; // input, expirationDateUpperbound
+        pubSignals_[9] = magicTokenId; // input, eventId
+        pubSignals_[10] = uint248(uint256(keccak256(abi.encode(receiver_)))); // input, eventData
+        pubSignals_[11] = uint256(registrationRoot_); // input, idStateRoot
+        pubSignals_[12] = SELECTOR; // input, selector
+        pubSignals_[13] = currentDate_; // input, currentDate
+        pubSignals_[15] = timestampUpperbound_; // input, timestampUpperbound
+        pubSignals_[17] = identityCounterUpperbound_; // input, identityCounterUpperbound
+        pubSignals_[18] = ZERO_DATE; // input, birthDateLowerbound
+        pubSignals_[19] = ZERO_DATE; // input, birthDateUpperbound
+        pubSignals_[20] = ZERO_DATE; // input, expirationDateLowerbound
+        pubSignals_[21] = ZERO_DATE; // input, expirationDateUpperbound
 
         require(identityProofVerifier.verifyProof(pubSignals_, zkPoints_), InvalidProof());
         require(balanceOf(receiver_, magicTokenId) == 0, UserAlreadyRegistered(receiver_));
