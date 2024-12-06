@@ -1,5 +1,7 @@
 import { ethers, zkit } from "hardhat";
 
+import { Groth16Proof } from "@solarity/zkit";
+
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 import { ERC1155ETH } from "@ethers-v6";
@@ -10,7 +12,6 @@ import { queryIdentity } from "@zkit";
 import { CURRENT_DATE, getQueryInputs } from "@/test/helpers/query";
 
 import { VerifierHelper } from "@/generated-types/ethers/contracts/ERC1155ETH";
-import { Groth16Proof } from "@solarity/zkit";
 
 describe("ERC1155ETH test", () => {
   const reverter = new Reverter();
@@ -65,8 +66,8 @@ describe("ERC1155ETH test", () => {
   }
 
   describe("mint logic", () => {
-    it.only("should mint token with state transition", async () => {
-      const inputs = getQueryInputs(MAGIC_ID, getEventData(USER1), 1n, await erc1155eth.initTimestamp());
+    it("should mint token with state transition", async () => {
+      const inputs = getQueryInputs(MAGIC_ID, getEventData(USER1), 10n, await erc1155eth.initTimestamp());
       const proof = await query.generateProof(inputs);
 
       const transitionData: ERC1155ETH.TransitionDataStruct = {
@@ -77,7 +78,7 @@ describe("ERC1155ETH test", () => {
       const userData: ERC1155ETH.UserDataStruct = {
         nullifier: proof.publicSignals.nullifier,
         identityCreationTimestamp: 0n,
-        identityCounter: 0n,
+        identityCounter: BigInt(inputs.identityCounterUpperbound) - 1n,
       };
 
       await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
