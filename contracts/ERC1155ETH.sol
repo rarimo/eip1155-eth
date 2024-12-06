@@ -25,12 +25,12 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         bytes proof;
     }
 
-    uint256 public constant PROOF_SIGNALS_COUNT = 24;
+    uint256 public constant PROOF_SIGNALS_COUNT = 23;
     uint256 public constant IDENTITY_LIMIT = type(uint32).max;
     uint256 public constant ZERO_DATE = 0x303030303030;
     uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
-    uint256 public initTimestamp = block.timestamp;
+    uint256 public initTimestamp;
 
     uint256 public magicTokenId;
 
@@ -60,6 +60,8 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         __ERC1155_init("");
 
         magicTokenId = magicTokenId_;
+
+        initTimestamp = block.timestamp;
 
         identityProofVerifier = identityProofVerifier_;
         state = IRegistrationSMTReplicator(state_);
@@ -124,10 +126,10 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         if (userData_.identityCreationTimestamp > initTimestamp) {
             timestampUpperbound_ = type(uint32).max;
-            identityCounterUpperbound_ = 0;
+            identityCounterUpperbound_ = 1;
         } else {
             timestampUpperbound_ = initTimestamp;
-            identityCounterUpperbound_ = userData_.identityCounter;
+            identityCounterUpperbound_ = userData_.identityCounter + 1;
         }
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier

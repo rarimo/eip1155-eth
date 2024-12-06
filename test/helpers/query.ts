@@ -24,33 +24,33 @@ const dg1 = createDG1Data({
   nationality: "ABW",
 });
 
-const skIdentity = 123n;
-const pkPassportHash = 0n;
-
-const timestamp = 0n;
-const identityCounter = 0n;
-
-const dg1Commitment = getDG1Commitment(dg1, skIdentity);
-
-const treePosition = getTreePosition(skIdentity, pkPassportHash);
-const treeValue = getTreeValue(dg1Commitment, identityCounter, timestamp);
-
 export function getQueryInputs(
   eventId: bigint,
   eventData: bigint,
   identityCounterUpperbound: bigint,
   timestampUpperbound: bigint,
 ): PrivatequeryIdentityGroth16 {
+  const skIdentity = 123n;
+  const pkPassportHash = 0n;
+
+  const timestamp = 0n;
+  const identityCounter = 0n;
+
+  const dg1Commitment = getDG1Commitment(dg1, skIdentity);
+
+  const treePosition = getTreePosition(skIdentity, pkPassportHash);
+  const treeValue = getTreeValue(dg1Commitment, identityCounter, timestamp);
+
   return {
     eventID: eventId,
-    eventData: eventData,
+    eventData,
     idStateRoot: Poseidon.hash([treePosition, treeValue, 1n]),
     selector: SELECTOR,
     currentDate: CURRENT_DATE,
     timestampLowerbound: 0n,
-    timestampUpperbound: timestampUpperbound,
+    timestampUpperbound,
     identityCounterLowerbound: 0n,
-    identityCounterUpperbound: identityCounterUpperbound,
+    identityCounterUpperbound,
     birthDateLowerbound: ZERO_DATE,
     birthDateUpperbound: ZERO_DATE,
     expirationDateLowerbound: ZERO_DATE,
