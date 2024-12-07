@@ -29,8 +29,8 @@ export function getQueryInputs(
   eventData: bigint,
   identityCounterUpperbound: bigint,
   timestampUpperbound: bigint,
+  skIdentity: bigint = 123n,
 ): PrivatequeryIdentityGroth16 {
-  const skIdentity = 123n;
   const pkPassportHash = 0n;
 
   const timestamp = 0n;

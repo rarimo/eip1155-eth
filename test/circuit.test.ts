@@ -3,7 +3,7 @@ import { zkit } from "hardhat";
 
 import { queryIdentity } from "@zkit";
 
-import { getQueryInputs } from "@/test/helpers/query";
+import { getQueryInputs } from "@helpers";
 
 describe("Query Identity Proof test", () => {
   let query: queryIdentity;

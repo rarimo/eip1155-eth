@@ -26,7 +26,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     uint256 public constant PROOF_SIGNALS_COUNT = 23;
-    uint256 public constant IDENTITY_LIMIT = type(uint32).max;
+    uint256 public constant TIMESTAMP_UPPERBOUND = type(uint64).max;
     uint256 public constant ZERO_DATE = 0x303030303030;
     uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
@@ -125,7 +125,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 identityCounterUpperbound_;
 
         if (userData_.identityCreationTimestamp > initTimestamp) {
-            timestampUpperbound_ = type(uint32).max;
+            timestampUpperbound_ = TIMESTAMP_UPPERBOUND;
             identityCounterUpperbound_ = 1;
         } else {
             timestampUpperbound_ = initTimestamp;
@@ -147,6 +147,8 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         require(identityProofVerifier.verifyProof(pubSignals_, zkPoints_), InvalidProof());
         require(balanceOf(receiver_, magicTokenId) == 0, UserAlreadyRegistered(receiver_));
+
+        nullifiers[userData_.nullifier] = true;
 
         _mint(receiver_, magicTokenId, 1, new bytes(0));
 
