@@ -51,6 +51,10 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error InvalidProof();
     error UserAlreadyRegistered(address user);
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function __ERC1155ETH_init(
         uint256 magicTokenId_,
         address identityProofVerifier_,
