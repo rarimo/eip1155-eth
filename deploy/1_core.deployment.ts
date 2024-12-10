@@ -15,5 +15,5 @@ export = async (deployer: Deployer) => {
 
   await core.__ERC1155ETH_init(MAGIC_TOKEN_ID, await verifier.getAddress(), STATE_CONTRACT_ADDRESS);
 
-  Reporter.reportContracts(["ERC1155ETH", await core.getAddress()]);
+  await Reporter.reportContractsMD(["ERC1155ETH", await core.getAddress()]);
 };

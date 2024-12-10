@@ -30,6 +30,8 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant ZERO_DATE = 0x303030303030;
     uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
+    uint256 public constant LOWERBOUND_EXPIRATION_DATE = 55199745061168;
+
     uint256 public initTimestamp;
 
     uint256 public magicTokenId;
@@ -146,7 +148,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         pubSignals_[17] = identityCounterUpperbound_; // input, identityCounterUpperbound
         pubSignals_[18] = ZERO_DATE; // input, birthDateLowerbound
         pubSignals_[19] = ZERO_DATE; // input, birthDateUpperbound
-        pubSignals_[20] = ZERO_DATE; // input, expirationDateLowerbound
+        pubSignals_[20] = LOWERBOUND_EXPIRATION_DATE; // input, expirationDateLowerbound
         pubSignals_[21] = ZERO_DATE; // input, expirationDateUpperbound
 
         require(identityProofVerifier.verifyProof(pubSignals_, zkPoints_), InvalidProof());

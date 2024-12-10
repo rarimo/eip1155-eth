@@ -53,7 +53,7 @@ export function getQueryInputs(
     identityCounterUpperbound,
     birthDateLowerbound: ZERO_DATE,
     birthDateUpperbound: ZERO_DATE,
-    expirationDateLowerbound: ZERO_DATE,
+    expirationDateLowerbound: encodeDate("241210"),
     expirationDateUpperbound: ZERO_DATE,
     citizenshipMask: 0n,
     skIdentity,
