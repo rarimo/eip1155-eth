@@ -30,13 +30,14 @@ export function getQueryInputs(
   identityCounterUpperbound: bigint,
   timestampUpperbound: bigint,
   skIdentity: bigint = 123n,
+  dg1Data = dg1,
 ): PrivatequeryIdentityGroth16 {
   const pkPassportHash = 0n;
 
   const timestamp = 0n;
   const identityCounter = 0n;
 
-  const dg1Commitment = getDG1Commitment(dg1, skIdentity);
+  const dg1Commitment = getDG1Commitment(dg1Data, skIdentity);
 
   const treePosition = getTreePosition(skIdentity, pkPassportHash);
   const treeValue = getTreeValue(dg1Commitment, identityCounter, timestamp);
@@ -58,7 +59,7 @@ export function getQueryInputs(
     citizenshipMask: 0n,
     skIdentity,
     pkPassportHash,
-    dg1,
+    dg1: dg1Data,
     idStateSiblings: Array(80).fill(0n),
     timestamp,
     identityCounter,
