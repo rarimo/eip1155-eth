@@ -5,9 +5,9 @@ export function encodeDate(dateStr?: string): bigint {
     return BigInt("0x303030303030");
   }
 
-  // Ensure the provided date string is 6 characters long (e.g. "202312").
+  // Ensure the provided date string is 6 characters long (e.g. "YYMMDD").
   if (dateStr.length !== 6) {
-    throw new Error("Date string must be exactly 6 characters long (e.g., 'YYYYMM' or '000000').");
+    throw new Error("Date string must be exactly 6 characters long (e.g., 'YYMMDD' or '000000').");
   }
 
   // Convert each character to its ASCII hex representation.

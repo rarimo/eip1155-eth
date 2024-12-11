@@ -8,6 +8,8 @@ import {ERC1155Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC1
 
 import {VerifierHelper} from "@solarity/solidity-lib/libs/zkp/snarkjs/VerifierHelper.sol";
 
+import {DateDecoder} from "./libs/DateDecoder.sol";
+
 import {IRegistrationSMTReplicator} from "./interfaces/IRegistrationSMTReplicator.sol";
 
 contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
@@ -52,6 +54,11 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     error NullifierUsed(uint256 nullifier);
     error InvalidProof();
     error UserAlreadyRegistered(address user);
+    error InvalidCurrentDate(
+        uint256 encodedDate,
+        uint256 encodedDateTimestamp,
+        uint256 blockTimestamp
+    );
 
     constructor() {
         _disableInitializers();
@@ -131,12 +138,18 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 identityCounterUpperbound_;
 
         if (userData_.identityCreationTimestamp > initTimestamp) {
-            timestampUpperbound_ = TIMESTAMP_UPPERBOUND;
+            timestampUpperbound_ = userData_.identityCreationTimestamp;
             identityCounterUpperbound_ = 1;
         } else {
             timestampUpperbound_ = initTimestamp;
             identityCounterUpperbound_ = userData_.identityCounter + 1;
         }
+
+        uint256 currentDateInTimestamp_ = DateDecoder.decodeDate(currentDate_);
+        require(
+            currentDateInTimestamp_ + 1 days > block.timestamp,
+            InvalidCurrentDate(currentDate_, currentDate_, block.timestamp)
+        );
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier
         pubSignals_[9] = magicTokenId; // input, eventId
@@ -148,7 +161,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         pubSignals_[17] = identityCounterUpperbound_; // input, identityCounterUpperbound
         pubSignals_[18] = ZERO_DATE; // input, birthDateLowerbound
         pubSignals_[19] = ZERO_DATE; // input, birthDateUpperbound
-        pubSignals_[20] = LOWERBOUND_EXPIRATION_DATE; // input, expirationDateLowerbound
+        pubSignals_[20] = currentDate_; // input, expirationDateLowerbound
         pubSignals_[21] = ZERO_DATE; // input, expirationDateUpperbound
 
         require(identityProofVerifier.verifyProof(pubSignals_, zkPoints_), InvalidProof());

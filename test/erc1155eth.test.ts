@@ -142,7 +142,7 @@ describe("ERC1155ETH test", () => {
 
     it("should revert if proof is invalid", async () => {
       await expect(
-        erc1155eth.mintWithRootTransition(transitionData, USER1, 0n, userData, formatProof(proof.proof)),
+        erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE + 1n, userData, formatProof(proof.proof)),
       ).to.be.revertedWithCustomError(erc1155eth, "InvalidProof");
     });
 
