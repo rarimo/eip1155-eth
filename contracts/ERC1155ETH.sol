@@ -67,10 +67,11 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     function __ERC1155ETH_init(
         uint256 magicTokenId_,
         address identityProofVerifier_,
-        address state_
+        address state_,
+        string memory uri_
     ) public initializer {
         __Ownable_init(_msgSender());
-        __ERC1155_init("");
+        __ERC1155_init(uri_);
 
         magicTokenId = magicTokenId_;
 

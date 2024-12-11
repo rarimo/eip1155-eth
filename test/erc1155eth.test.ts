@@ -39,7 +39,7 @@ describe("ERC1155ETH test", () => {
 
     state = await ethers.deployContract("RegistrationSMTReplicatorMock");
 
-    await erc1155eth.__ERC1155ETH_init(MAGIC_ID, await verifier.getAddress(), await state.getAddress());
+    await erc1155eth.__ERC1155ETH_init(MAGIC_ID, await verifier.getAddress(), await state.getAddress(), "");
 
     await reverter.snapshot();
   });
@@ -220,7 +220,8 @@ describe("ERC1155ETH test", () => {
 
   describe("#Contract Management", () => {
     it("should revert if trying to initialize the contract twice", async () => {
-      await expect(erc1155eth.__ERC1155ETH_init(MAGIC_ID, ethers.ZeroAddress, await state.getAddress())).to.be.rejected;
+      await expect(erc1155eth.__ERC1155ETH_init(MAGIC_ID, ethers.ZeroAddress, await state.getAddress(), "")).to.be
+        .rejected;
     });
 
     it("should upgrade the contract by owner", async () => {
