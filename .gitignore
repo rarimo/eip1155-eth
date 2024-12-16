@@ -8,7 +8,6 @@ artifacts
 coverage.json
 coverage
 abi
-!zkit/artifacts
 
 # Typechain generated files
 generated-types
