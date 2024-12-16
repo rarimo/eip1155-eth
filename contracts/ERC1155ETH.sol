@@ -22,20 +22,16 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     struct TransitionData {
-        bytes32 newRoot_;
-        uint256 transitionTimestamp_;
+        bytes32 newRoot;
+        uint256 transitionTimestamp;
         bytes proof;
     }
 
     uint256 public constant PROOF_SIGNALS_COUNT = 23;
-    uint256 public constant TIMESTAMP_UPPERBOUND = type(uint64).max;
     uint256 public constant ZERO_DATE = 0x303030303030;
     uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
-    uint256 public constant LOWERBOUND_EXPIRATION_DATE = 55199745061168;
-
     uint256 public initTimestamp;
-
     uint256 public magicTokenId;
 
     address public identityProofVerifier;
@@ -99,12 +95,12 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         VerifierHelper.ProofPoints memory zkPoints_
     ) public {
         state.transitionRoot(
-            transitionData_.newRoot_,
-            transitionData_.transitionTimestamp_,
+            transitionData_.newRoot,
+            transitionData_.transitionTimestamp,
             transitionData_.proof
         );
 
-        _mintLogic(transitionData_.newRoot_, receiver_, currentDate_, userData_, zkPoints_);
+        _mintLogic(transitionData_.newRoot, receiver_, currentDate_, userData_, zkPoints_);
     }
 
     function mintWithSimpleRootTransition(
@@ -115,12 +111,20 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         VerifierHelper.ProofPoints memory zkPoints_
     ) public {
         state.transitionRootSimple(
-            transitionData_.newRoot_,
-            transitionData_.transitionTimestamp_,
+            transitionData_.newRoot,
+            transitionData_.transitionTimestamp,
             transitionData_.proof
         );
 
-        _mintLogic(transitionData_.newRoot_, receiver_, currentDate_, userData_, zkPoints_);
+        _mintLogic(transitionData_.newRoot, receiver_, currentDate_, userData_, zkPoints_);
+    }
+
+    function setURI(string memory newURI_) public onlyOwner {
+        _setURI(newURI_);
+    }
+
+    function isNullifierUsed(uint256 nullifier) public view returns (bool) {
+        return nullifiers[nullifier];
     }
 
     function _mintLogic(
@@ -129,7 +133,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 currentDate_,
         UserData memory userData_,
         VerifierHelper.ProofPoints memory zkPoints_
-    ) public {
+    ) private {
         require(state.isRootValid(registrationRoot_), InvalidRoot(registrationRoot_));
         require(!nullifiers[userData_.nullifier], NullifierUsed(userData_.nullifier));
 
@@ -149,7 +153,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 currentDateInTimestamp_ = DateDecoder.decodeDate(currentDate_);
         require(
             currentDateInTimestamp_ + 1 days > block.timestamp,
-            InvalidCurrentDate(currentDate_, currentDate_, block.timestamp)
+            InvalidCurrentDate(currentDate_, currentDateInTimestamp_, block.timestamp)
         );
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier
@@ -173,10 +177,6 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _mint(receiver_, magicTokenId, 1, new bytes(0));
 
         emit MagicTokenMinted(receiver_, magicTokenId, 1, userData_.nullifier);
-    }
-
-    function isNullifierUsed(uint256 nullifier) public view returns (bool) {
-        return nullifiers[nullifier];
     }
 
     // solhint-disable-next-line no-empty-blocks

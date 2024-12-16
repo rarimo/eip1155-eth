@@ -5,12 +5,13 @@ import { Groth16Proof } from "@solarity/zkit";
 
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { Reverter, CURRENT_DATE, getQueryInputs } from "@helpers";
+import { Reverter, CURRENT_DATE, getQueryInputs, encodeDate } from "@helpers";
 
 import { ProofqueryIdentityGroth16, queryIdentity } from "@zkit";
 
 import { ERC1155ETH, RegistrationSMTReplicatorMock } from "@ethers-v6";
 import { VerifierHelper } from "@/generated-types/ethers/contracts/ERC1155ETH";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("ERC1155ETH test", () => {
   const reverter = new Reverter();
@@ -76,8 +77,8 @@ describe("ERC1155ETH test", () => {
       proof = await query.generateProof(inputs);
 
       transitionData = {
-        newRoot_: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
-        transitionTimestamp_: 0n,
+        newRoot: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
+        transitionTimestamp: 0n,
         proof: "0x",
       };
       userData = {
@@ -116,9 +117,9 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should mint token without root transition", async () => {
-      await state.transitionRoot(transitionData.newRoot_, transitionData.transitionTimestamp_, transitionData.proof);
+      await state.transitionRoot(transitionData.newRoot, transitionData.transitionTimestamp, transitionData.proof);
 
-      await expect(erc1155eth.mint(transitionData.newRoot_, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
         .to.emit(erc1155eth, "MagicTokenMinted")
         .withArgs(USER1.address, MAGIC_ID, 1, userData.nullifier);
 
@@ -127,15 +128,15 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should revert if root is invalid", async () => {
-      await expect(erc1155eth.mint(transitionData.newRoot_, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
         .to.be.revertedWithCustomError(erc1155eth, "InvalidRoot")
-        .withArgs(transitionData.newRoot_);
+        .withArgs(transitionData.newRoot);
     });
 
     it("should revert if nullifier is used", async () => {
       await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
 
-      await expect(erc1155eth.mint(transitionData.newRoot_, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
         .to.be.revertedWithCustomError(erc1155eth, "NullifierUsed")
         .withArgs(userData.nullifier);
     });
@@ -146,6 +147,23 @@ describe("ERC1155ETH test", () => {
       ).to.be.revertedWithCustomError(erc1155eth, "InvalidProof");
     });
 
+    it("should revert if provided current date is too far away in the past", async () => {
+      const now = Date.now();
+      await time.setNextBlockTimestamp(now);
+
+      await expect(
+        erc1155eth.mintWithRootTransition(
+          transitionData,
+          USER1,
+          encodeDate("231209"),
+          userData,
+          formatProof(proof.proof),
+        ),
+      )
+        .to.be.revertedWithCustomError(erc1155eth, "InvalidCurrentDate")
+        .withArgs(encodeDate("231209"), 1702080000n, now);
+    });
+
     it("should revert if receiver already has a token", async () => {
       await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
 
@@ -153,8 +171,8 @@ describe("ERC1155ETH test", () => {
       const proofAttempt2 = await query.generateProof(inputs);
 
       const transitionDataAttempt2 = {
-        newRoot_: ethers.toBeHex(proofAttempt2.publicSignals.idStateRoot, 32),
-        transitionTimestamp_: 0n,
+        newRoot: ethers.toBeHex(proofAttempt2.publicSignals.idStateRoot, 32),
+        transitionTimestamp: 0n,
         proof: "0x",
       };
       const userDataAttempt2 = {
@@ -183,8 +201,8 @@ describe("ERC1155ETH test", () => {
       const proof = await query.generateProof(inputs);
 
       const transitionData = {
-        newRoot_: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
-        transitionTimestamp_: 0n,
+        newRoot: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
+        transitionTimestamp: 0n,
         proof: "0x",
       };
       const userData = {
@@ -200,17 +218,17 @@ describe("ERC1155ETH test", () => {
 
     it("should mint token by an account who has zero registration after the initTimestamp", async () => {
       const proof = await query.generateProof(
-        getQueryInputs(MAGIC_ID, getEventData(USER1), 1n, await erc1155eth.TIMESTAMP_UPPERBOUND()),
+        getQueryInputs(MAGIC_ID, getEventData(USER1), 1n, (await erc1155eth.initTimestamp()) + 1n),
       );
 
       const transitionData = {
-        newRoot_: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
-        transitionTimestamp_: 0n,
+        newRoot: ethers.toBeHex(proof.publicSignals.idStateRoot, 32),
+        transitionTimestamp: 0n,
         proof: "0x",
       };
       const userData = {
         nullifier: proof.publicSignals.nullifier,
-        identityCreationTimestamp: await erc1155eth.TIMESTAMP_UPPERBOUND(),
+        identityCreationTimestamp: (await erc1155eth.initTimestamp()) + 1n,
         identityCounter: 0n,
       };
 
@@ -219,6 +237,20 @@ describe("ERC1155ETH test", () => {
   });
 
   describe("#Contract Management", () => {
+    it("should set uri", async () => {
+      const uri = "ipfs://ipfs/newuri";
+
+      await erc1155eth.setURI(uri);
+
+      expect(await erc1155eth.uri(0)).to.be.equal(uri);
+    });
+
+    it("should revert if trying to set uri by unauthorized account", async () => {
+      await expect(erc1155eth.connect(USER2).setURI("ipfs://ipfs/newuri"))
+        .to.be.revertedWithCustomError(erc1155eth, "OwnableUnauthorizedAccount")
+        .withArgs(USER2.address);
+    });
+
     it("should revert if trying to initialize the contract twice", async () => {
       await expect(erc1155eth.__ERC1155ETH_init(MAGIC_ID, ethers.ZeroAddress, await state.getAddress(), "")).to.be
         .rejected;
