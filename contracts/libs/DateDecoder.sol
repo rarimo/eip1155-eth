@@ -2,107 +2,126 @@
 pragma solidity ^0.8.20;
 
 library DateDecoder {
-    // Number of seconds in one day
-    uint256 internal constant SECONDS_PER_DAY = 86400;
+    uint256 internal constant SECONDS_PER_DAY = 24 hours;
 
-    function isLeapYear(uint256 year) internal pure returns (bool) {
-        // Year is leap if divisible by 400, or divisible by 4 and not by 100.
-        return ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0)));
+    function isLeapYear(uint256 year_) internal pure returns (bool condition_) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            let mod400 := mod(year_, 400)
+            let mod4 := mod(year_, 4)
+            let mod100 := mod(year_, 100)
+
+            // ((year % 400 == 0) || ((year % 4 == 0) && (year % 100 != 0)))
+            condition_ := or(eq(mod400, 0), and(eq(mod4, 0), iszero(eq(mod100, 0))))
+        }
     }
 
-    function daysInMonth(uint256 year, uint256 month) internal pure returns (uint256) {
-        if (
-            month == 1 ||
-            month == 3 ||
-            month == 5 ||
-            month == 7 ||
-            month == 8 ||
-            month == 10 ||
-            month == 12
-        ) {
-            return 31;
+    function daysInMonth(uint256 year_, uint256 month_) internal pure returns (uint256 daysIn_) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            switch month_
+            case 1 {
+                daysIn_ := 31
+            }
+            case 2 {
+                let mod400 := mod(year_, 400)
+                let mod4 := mod(year_, 4)
+                let mod100 := mod(year_, 100)
+                let leap := or(eq(mod400, 0), and(eq(mod4, 0), iszero(eq(mod100, 0))))
+
+                // If leap = 1 -> 29, else 28
+                daysIn_ := add(28, leap)
+            }
+            case 3 {
+                daysIn_ := 31
+            }
+            case 4 {
+                daysIn_ := 30
+            }
+            case 5 {
+                daysIn_ := 31
+            }
+            case 6 {
+                daysIn_ := 30
+            }
+            case 7 {
+                daysIn_ := 31
+            }
+            case 8 {
+                daysIn_ := 31
+            }
+            case 9 {
+                daysIn_ := 30
+            }
+            case 10 {
+                daysIn_ := 31
+            }
+            case 11 {
+                daysIn_ := 30
+            }
+            case 12 {
+                daysIn_ := 31
+            }
+            default {
+                revert(0, 0)
+            }
         }
-        if (month == 4 || month == 6 || month == 9 || month == 11) {
-            return 30;
-        }
-        // February
-        return isLeapYear(year) ? 29 : 28;
     }
 
     function daysFrom1970(
-        uint256 year,
-        uint256 month,
-        uint256 day
+        uint256 year_,
+        uint256 month_,
+        uint256 day_
     ) internal pure returns (uint256) {
-        // Calculate total days from 1970-01-01 to the given date
-        // First handle years
-        uint256 daysCount = 0;
+        require(year_ >= 1970, "DD: Year must be 1970 or later");
 
-        if (year >= 1970) {
-            for (uint256 y = 1970; y < year; y++) {
-                daysCount += isLeapYear(y) ? 366 : 365;
-            }
-        } else {
-            // If needed, handle years before 1970, though "YY" implies no earlier than 1900
-            for (uint256 y = year; y < 1970; y++) {
-                daysCount -= isLeapYear(y) ? 366 : 365;
-            }
+        // Calculate total days from 1970-01-01 to the given date
+        uint256 daysCount_ = 0;
+
+        for (uint256 y = 1970; y < year_; ++y) {
+            daysCount_ += isLeapYear(y) ? 366 : 365;
         }
 
-        // Add days for months before the given month
-        for (uint256 m = 1; m < month; m++) {
-            daysCount += daysInMonth(year, m);
+        for (uint256 m = 1; m < month_; ++m) {
+            daysCount_ += daysInMonth(year_, m);
         }
 
         // Add days of current month (day - 1 since we start counting from zero)
-        daysCount += (day - 1);
+        daysCount_ += (day_ - 1);
 
-        return daysCount;
+        return daysCount_;
     }
 
-    function decodeDate(uint256 encoded) internal pure returns (uint256) {
-        require(
-            encoded >= 0x303030303030 && encoded <= 0x393939393939,
-            "DateDecoder: Invalid input"
-        );
+    function decodeDate(uint256 encoded_) internal pure returns (uint256) {
+        require(encoded_ >= 0x303030303030 && encoded_ <= 0x393939393939, "DD: Invalid input");
 
         // Convert the uint256 into a 6-byte ASCII sequence
         // The encoding produces 6 ASCII chars, each in the range [0x30..0x39]
-        bytes6 dateBytes = bytes6(bytes32(encoded << (256 - 48)));
-        // Explanation for the shift:
-        // 6 chars * 8 bits = 48 bits total. We shift left so the leftmost 6 bytes end up in dateBytes.
-        // Another simpler approach is to directly cast:
-        // dateBytes = bytes6(encoded) would assume `encoded` fits in 6 bytes.
-        // If encoded always fits within 6 bytes, you can just do `bytes6 dateBytes = bytes6(encoded);`
-
-        // To be safe with arbitrary input, let's mask:
-        dateBytes = bytes6(uint48(encoded)); // since we know it's only 6 bytes of data.
+        bytes6 dateBytes_ = bytes6(bytes32(encoded_ << (256 - 48)));
+        dateBytes_ = bytes6(uint48(encoded_)); // since we know it's only 6 bytes of data.
 
         // Extract characters
         // "YYMMDD" -> dateBytes[0..5]
-        uint256 Y1 = uint256(uint8(dateBytes[0])) - 0x30;
-        uint256 Y2 = uint256(uint8(dateBytes[1])) - 0x30;
-        uint256 M1 = uint256(uint8(dateBytes[2])) - 0x30;
-        uint256 M2 = uint256(uint8(dateBytes[3])) - 0x30;
-        uint256 D1 = uint256(uint8(dateBytes[4])) - 0x30;
-        uint256 D2 = uint256(uint8(dateBytes[5])) - 0x30;
+        uint256 Y1_ = uint256(uint8(dateBytes_[0])) - 0x30;
+        uint256 Y2_ = uint256(uint8(dateBytes_[1])) - 0x30;
+        uint256 M1_ = uint256(uint8(dateBytes_[2])) - 0x30;
+        uint256 M2_ = uint256(uint8(dateBytes_[3])) - 0x30;
+        uint256 D1_ = uint256(uint8(dateBytes_[4])) - 0x30;
+        uint256 D2_ = uint256(uint8(dateBytes_[5])) - 0x30;
 
         // If all are zero ("000000"), return 0 as no date
-        if (Y1 == 0 && Y2 == 0 && M1 == 0 && M2 == 0 && D1 == 0 && D2 == 0) {
+        if (Y1_ == 0 && Y2_ == 0 && M1_ == 0 && M2_ == 0 && D1_ == 0 && D2_ == 0) {
             return 0;
         }
 
-        uint256 yy = Y1 * 10 + Y2; // e.g. "23" for 2023
-        uint256 mm = M1 * 10 + M2; // month
-        uint256 dd = D1 * 10 + D2; // day
+        uint256 yy_ = Y1_ * 10 + Y2_;
+        uint256 mm_ = M1_ * 10 + M2_;
+        uint256 dd_ = D1_ * 10 + D2_;
 
         // Determine the full year
-        uint256 year = yy < 70 ? (2000 + yy) : (1900 + yy);
+        uint256 year_ = yy_ < 70 ? (2000 + yy_) : (1900 + yy_);
+        uint256 totalDays_ = daysFrom1970(year_, mm_, dd_);
 
-        // Calculate days since 1970
-        uint256 totalDays = daysFrom1970(year, mm, dd);
-        uint256 timestamp = totalDays * SECONDS_PER_DAY;
-
-        return timestamp;
+        return totalDays_ * SECONDS_PER_DAY;
     }
 }
