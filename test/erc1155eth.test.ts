@@ -212,6 +212,20 @@ describe("ERC1155ETH test", () => {
         erc1155eth.safeTransferFrom(USER1.address, USER2.address, MAGIC_ID, 1, "0x"),
       ).to.be.revertedWithCustomError(erc1155eth, "BurnAndTransferAreNotAllowed");
     });
+
+    it("should allow to set magic token id", async () => {
+      const newMagicId = 123456789n;
+
+      await erc1155eth.setMagicTokenId(newMagicId);
+
+      expect(await erc1155eth.magicTokenId()).to.be.equal(newMagicId);
+    });
+
+    it("should revert if trying to set magic token id by unauthorized account", async () => {
+      await expect(erc1155eth.connect(USER2).setMagicTokenId(123456789n))
+        .to.be.revertedWithCustomError(erc1155eth, "OwnableUnauthorizedAccount")
+        .withArgs(USER2.address);
+    });
   });
 
   describe("mint conditions", () => {

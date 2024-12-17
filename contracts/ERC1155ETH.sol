@@ -124,6 +124,10 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _setURI(newURI_);
     }
 
+    function setMagicTokenId(uint256 newMagicTokenId_) public onlyOwner {
+        magicTokenId = newMagicTokenId_;
+    }
+
     function isNullifierUsed(uint256 nullifier) public view returns (bool) {
         return nullifiers[nullifier];
     }
