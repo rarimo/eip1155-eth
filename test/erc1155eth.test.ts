@@ -47,11 +47,11 @@ describe("ERC1155ETH test", () => {
 
   afterEach(reverter.revert);
 
-  function getEventData(receiver: SignerWithAddress): bigint {
+  function getEventData(receiver: SignerWithAddress, contractAddress: string): bigint {
     const encoder = new ethers.AbiCoder();
 
     return (
-      BigInt(ethers.keccak256(encoder.encode(["address"], [receiver.address]))) &
+      BigInt(ethers.keccak256(encoder.encode(["address", "address"], [receiver.address, contractAddress]))) &
       0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffn
     );
   }
@@ -73,7 +73,12 @@ describe("ERC1155ETH test", () => {
     let userData: ERC1155ETH.UserDataStruct;
 
     before(async () => {
-      const inputs = getQueryInputs(MAGIC_ID, getEventData(USER1), 10n, await erc1155eth.initTimestamp());
+      const inputs = getQueryInputs(
+        MAGIC_ID,
+        getEventData(USER1, await erc1155eth.getAddress()),
+        10n,
+        await erc1155eth.initTimestamp(),
+      );
       proof = await query.generateProof(inputs);
 
       transitionData = {
@@ -167,7 +172,13 @@ describe("ERC1155ETH test", () => {
     it("should revert if receiver already has a token", async () => {
       await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
 
-      const inputs = getQueryInputs(MAGIC_ID, getEventData(USER1), 10n, await erc1155eth.initTimestamp(), 125n);
+      const inputs = getQueryInputs(
+        MAGIC_ID,
+        getEventData(USER1, await erc1155eth.getAddress()),
+        10n,
+        await erc1155eth.initTimestamp(),
+        125n,
+      );
       const proofAttempt2 = await query.generateProof(inputs);
 
       const transitionDataAttempt2 = {
@@ -193,11 +204,24 @@ describe("ERC1155ETH test", () => {
         .to.be.revertedWithCustomError(erc1155eth, "UserAlreadyRegistered")
         .withArgs(USER1.address);
     });
+
+    it("should revert if trying to transfer token to the another user", async () => {
+      await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
+
+      await expect(
+        erc1155eth.safeTransferFrom(USER1.address, USER2.address, MAGIC_ID, 1, "0x"),
+      ).to.be.revertedWithCustomError(erc1155eth, "BurnAndTransferAreNotAllowed");
+    });
   });
 
   describe("mint conditions", () => {
     it("should mint token by an account who has multiple registration before the initTimestamp", async () => {
-      const inputs = getQueryInputs(MAGIC_ID, getEventData(USER1), 15n, await erc1155eth.initTimestamp());
+      const inputs = getQueryInputs(
+        MAGIC_ID,
+        getEventData(USER1, await erc1155eth.getAddress()),
+        15n,
+        await erc1155eth.initTimestamp(),
+      );
       const proof = await query.generateProof(inputs);
 
       const transitionData = {
@@ -218,7 +242,12 @@ describe("ERC1155ETH test", () => {
 
     it("should mint token by an account who has zero registration after the initTimestamp", async () => {
       const proof = await query.generateProof(
-        getQueryInputs(MAGIC_ID, getEventData(USER1), 1n, (await erc1155eth.initTimestamp()) + 1n),
+        getQueryInputs(
+          MAGIC_ID,
+          getEventData(USER1, await erc1155eth.getAddress()),
+          1n,
+          (await erc1155eth.initTimestamp()) + 1n,
+        ),
       );
 
       const transitionData = {

@@ -55,6 +55,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         uint256 encodedDateTimestamp,
         uint256 blockTimestamp
     );
+    error BurnAndTransferAreNotAllowed();
 
     constructor() {
         _disableInitializers();
@@ -158,7 +159,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier
         pubSignals_[9] = magicTokenId; // input, eventId
-        pubSignals_[10] = uint248(uint256(keccak256(abi.encode(receiver_)))); // input, eventData
+        pubSignals_[10] = uint248(uint256(keccak256(abi.encode(receiver_, address(this))))); // input, eventData
         pubSignals_[11] = uint256(registrationRoot_); // input, idStateRoot
         pubSignals_[12] = SELECTOR; // input, selector
         pubSignals_[13] = currentDate_; // input, currentDate
@@ -177,6 +178,19 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _mint(receiver_, magicTokenId, 1, new bytes(0));
 
         emit MagicTokenMinted(receiver_, magicTokenId, 1, userData_.nullifier);
+    }
+
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal override {
+        super._update(from, to, ids, values);
+
+        if (from != address(0)) {
+            revert BurnAndTransferAreNotAllowed();
+        }
     }
 
     // solhint-disable-next-line no-empty-blocks
