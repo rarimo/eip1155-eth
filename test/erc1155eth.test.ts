@@ -40,7 +40,7 @@ describe("ERC1155ETH test", () => {
 
     state = await ethers.deployContract("RegistrationSMTReplicatorMock");
 
-    await erc1155eth.__ERC1155ETH_init(MAGIC_ID, await verifier.getAddress(), await state.getAddress(), "");
+    await erc1155eth.__ERC1155ETH_init(await verifier.getAddress(), await state.getAddress(), "");
 
     await reverter.snapshot();
   });
@@ -97,6 +97,7 @@ describe("ERC1155ETH test", () => {
       await expect(
         erc1155eth.mintWithSimpleRootTransition(
           transitionData,
+          MAGIC_ID,
           USER1,
           CURRENT_DATE,
           userData,
@@ -112,7 +113,14 @@ describe("ERC1155ETH test", () => {
 
     it("should mint token with regular transition", async () => {
       await expect(
-        erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof)),
+        erc1155eth.mintWithRootTransition(
+          transitionData,
+          MAGIC_ID,
+          USER1,
+          CURRENT_DATE,
+          userData,
+          formatProof(proof.proof),
+        ),
       )
         .to.emit(erc1155eth, "MagicTokenMinted")
         .withArgs(USER1.address, MAGIC_ID, 1, userData.nullifier);
@@ -124,7 +132,9 @@ describe("ERC1155ETH test", () => {
     it("should mint token without root transition", async () => {
       await state.transitionRoot(transitionData.newRoot, transitionData.transitionTimestamp, transitionData.proof);
 
-      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(
+        erc1155eth.mint(transitionData.newRoot, MAGIC_ID, USER1, CURRENT_DATE, userData, formatProof(proof.proof)),
+      )
         .to.emit(erc1155eth, "MagicTokenMinted")
         .withArgs(USER1.address, MAGIC_ID, 1, userData.nullifier);
 
@@ -133,22 +143,40 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should revert if root is invalid", async () => {
-      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(
+        erc1155eth.mint(transitionData.newRoot, MAGIC_ID, USER1, CURRENT_DATE, userData, formatProof(proof.proof)),
+      )
         .to.be.revertedWithCustomError(erc1155eth, "InvalidRoot")
         .withArgs(transitionData.newRoot);
     });
 
     it("should revert if nullifier is used", async () => {
-      await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
+      await erc1155eth.mintWithRootTransition(
+        transitionData,
+        MAGIC_ID,
+        USER1,
+        CURRENT_DATE,
+        userData,
+        formatProof(proof.proof),
+      );
 
-      await expect(erc1155eth.mint(transitionData.newRoot, USER1, CURRENT_DATE, userData, formatProof(proof.proof)))
+      await expect(
+        erc1155eth.mint(transitionData.newRoot, MAGIC_ID, USER1, CURRENT_DATE, userData, formatProof(proof.proof)),
+      )
         .to.be.revertedWithCustomError(erc1155eth, "NullifierUsed")
         .withArgs(userData.nullifier);
     });
 
     it("should revert if proof is invalid", async () => {
       await expect(
-        erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE + 1n, userData, formatProof(proof.proof)),
+        erc1155eth.mintWithRootTransition(
+          transitionData,
+          MAGIC_ID,
+          USER1,
+          CURRENT_DATE + 1n,
+          userData,
+          formatProof(proof.proof),
+        ),
       ).to.be.revertedWithCustomError(erc1155eth, "InvalidProof");
     });
 
@@ -159,6 +187,7 @@ describe("ERC1155ETH test", () => {
       await expect(
         erc1155eth.mintWithRootTransition(
           transitionData,
+          MAGIC_ID,
           USER1,
           encodeDate("231209"),
           userData,
@@ -170,7 +199,14 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should revert if receiver already has a token", async () => {
-      await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
+      await erc1155eth.mintWithRootTransition(
+        transitionData,
+        MAGIC_ID,
+        USER1,
+        CURRENT_DATE,
+        userData,
+        formatProof(proof.proof),
+      );
 
       const inputs = getQueryInputs(
         MAGIC_ID,
@@ -195,6 +231,7 @@ describe("ERC1155ETH test", () => {
       await expect(
         erc1155eth.mintWithRootTransition(
           transitionDataAttempt2,
+          MAGIC_ID,
           USER1,
           CURRENT_DATE,
           userDataAttempt2,
@@ -206,25 +243,18 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should revert if trying to transfer token to the another user", async () => {
-      await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
+      await erc1155eth.mintWithRootTransition(
+        transitionData,
+        MAGIC_ID,
+        USER1,
+        CURRENT_DATE,
+        userData,
+        formatProof(proof.proof),
+      );
 
       await expect(
         erc1155eth.safeTransferFrom(USER1.address, USER2.address, MAGIC_ID, 1, "0x"),
       ).to.be.revertedWithCustomError(erc1155eth, "BurnAndTransferAreNotAllowed");
-    });
-
-    it("should allow to set magic token id", async () => {
-      const newMagicId = 123456789n;
-
-      await erc1155eth.setMagicTokenId(newMagicId);
-
-      expect(await erc1155eth.magicTokenId()).to.be.equal(newMagicId);
-    });
-
-    it("should revert if trying to set magic token id by unauthorized account", async () => {
-      await expect(erc1155eth.connect(USER2).setMagicTokenId(123456789n))
-        .to.be.revertedWithCustomError(erc1155eth, "OwnableUnauthorizedAccount")
-        .withArgs(USER2.address);
     });
   });
 
@@ -250,7 +280,14 @@ describe("ERC1155ETH test", () => {
       };
 
       await expect(
-        erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof)),
+        erc1155eth.mintWithRootTransition(
+          transitionData,
+          MAGIC_ID,
+          USER1,
+          CURRENT_DATE,
+          userData,
+          formatProof(proof.proof),
+        ),
       ).to.be.fulfilled;
     });
 
@@ -275,7 +312,14 @@ describe("ERC1155ETH test", () => {
         identityCounter: 0n,
       };
 
-      await erc1155eth.mintWithRootTransition(transitionData, USER1, CURRENT_DATE, userData, formatProof(proof.proof));
+      await erc1155eth.mintWithRootTransition(
+        transitionData,
+        MAGIC_ID,
+        USER1,
+        CURRENT_DATE,
+        userData,
+        formatProof(proof.proof),
+      );
     });
   });
 
@@ -295,8 +339,7 @@ describe("ERC1155ETH test", () => {
     });
 
     it("should revert if trying to initialize the contract twice", async () => {
-      await expect(erc1155eth.__ERC1155ETH_init(MAGIC_ID, ethers.ZeroAddress, await state.getAddress(), "")).to.be
-        .rejected;
+      await expect(erc1155eth.__ERC1155ETH_init(ethers.ZeroAddress, await state.getAddress(), "")).to.be.rejected;
     });
 
     it("should upgrade the contract by owner", async () => {

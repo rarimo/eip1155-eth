@@ -32,7 +32,6 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public constant SELECTOR = 0x1A01; // 0b1101000000001
 
     uint256 public initTimestamp;
-    uint256 public magicTokenId;
 
     address public identityProofVerifier;
     IRegistrationSMTReplicator public state;
@@ -62,15 +61,12 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function __ERC1155ETH_init(
-        uint256 magicTokenId_,
         address identityProofVerifier_,
         address state_,
         string memory uri_
     ) public initializer {
         __Ownable_init(_msgSender());
         __ERC1155_init(uri_);
-
-        magicTokenId = magicTokenId_;
 
         initTimestamp = block.timestamp;
 
@@ -80,16 +76,18 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     function mint(
         bytes32 registrationRoot_,
+        uint256 tokenId_,
         address receiver_,
         uint256 currentDate_,
         UserData memory userData_,
         VerifierHelper.ProofPoints memory zkPoints_
     ) public {
-        _mintLogic(registrationRoot_, receiver_, currentDate_, userData_, zkPoints_);
+        _mintLogic(registrationRoot_, tokenId_, receiver_, currentDate_, userData_, zkPoints_);
     }
 
     function mintWithRootTransition(
         TransitionData memory transitionData_,
+        uint256 tokenId_,
         address receiver_,
         uint256 currentDate_,
         UserData memory userData_,
@@ -101,11 +99,19 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             transitionData_.proof
         );
 
-        _mintLogic(transitionData_.newRoot, receiver_, currentDate_, userData_, zkPoints_);
+        _mintLogic(
+            transitionData_.newRoot,
+            tokenId_,
+            receiver_,
+            currentDate_,
+            userData_,
+            zkPoints_
+        );
     }
 
     function mintWithSimpleRootTransition(
         TransitionData memory transitionData_,
+        uint256 tokenId_,
         address receiver_,
         uint256 currentDate_,
         UserData memory userData_,
@@ -117,15 +123,18 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             transitionData_.proof
         );
 
-        _mintLogic(transitionData_.newRoot, receiver_, currentDate_, userData_, zkPoints_);
+        _mintLogic(
+            transitionData_.newRoot,
+            tokenId_,
+            receiver_,
+            currentDate_,
+            userData_,
+            zkPoints_
+        );
     }
 
     function setURI(string memory newURI_) public onlyOwner {
         _setURI(newURI_);
-    }
-
-    function setMagicTokenId(uint256 newMagicTokenId_) public onlyOwner {
-        magicTokenId = newMagicTokenId_;
     }
 
     function isNullifierUsed(uint256 nullifier) public view returns (bool) {
@@ -134,6 +143,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     function _mintLogic(
         bytes32 registrationRoot_,
+        uint256 tokenId_,
         address receiver_,
         uint256 currentDate_,
         UserData memory userData_,
@@ -162,7 +172,7 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         );
 
         pubSignals_[0] = userData_.nullifier; // output, nullifier
-        pubSignals_[9] = magicTokenId; // input, eventId
+        pubSignals_[9] = tokenId_; // input, eventId
         pubSignals_[10] = uint248(uint256(keccak256(abi.encode(receiver_, address(this))))); // input, eventData
         pubSignals_[11] = uint256(registrationRoot_); // input, idStateRoot
         pubSignals_[12] = SELECTOR; // input, selector
@@ -175,13 +185,13 @@ contract ERC1155ETH is ERC1155Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         pubSignals_[21] = ZERO_DATE; // input, expirationDateUpperbound
 
         require(identityProofVerifier.verifyProof(pubSignals_, zkPoints_), InvalidProof());
-        require(balanceOf(receiver_, magicTokenId) == 0, UserAlreadyRegistered(receiver_));
+        require(balanceOf(receiver_, tokenId_) == 0, UserAlreadyRegistered(receiver_));
 
         nullifiers[userData_.nullifier] = true;
 
-        _mint(receiver_, magicTokenId, 1, new bytes(0));
+        _mint(receiver_, tokenId_, 1, new bytes(0));
 
-        emit MagicTokenMinted(receiver_, magicTokenId, 1, userData_.nullifier);
+        emit MagicTokenMinted(receiver_, tokenId_, 1, userData_.nullifier);
     }
 
     function _update(
